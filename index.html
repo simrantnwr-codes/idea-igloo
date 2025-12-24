@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Startup Signal Scout | Idea Generation Framework</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    
+    <!-- Chosen Palette: Founder Focus (Slate, Indigo, Emerald, Rose) -->
+    <!-- Application Structure Plan: The application is designed as a linear, interactive workshop for founders.
+         1. 'Signal Lab': An educational section to distinguish Valid vs. Invalid signals using interactive comparison cards.
+         2. 'Translation Engine': A horizontal process flow visualization to demonstrate the 'Signal -> Payer' logic step-by-step.
+         3. 'Pattern Vault': A filterable grid of high-value startup patterns (B2B/B2C/India) to inspire the user.
+         4. 'Viability Calculator': A functional tool implementing the 30-point scoring rubric with visual feedback via a Radar Chart.
+         5. 'Idea Simulator': A demo section showing the final output format expected from the methodology.
+         This structure moves the user from understanding the raw input (Signals) to processing it (Translation), finding inspiration (Patterns), and finally validating the output (Calculator). -->
+
+    <!-- Visualization & Content Choices:
+         - Signal Comparison: Two-column layout with hover effects -> Goal: Contrast 'Fuel' (Valid) vs 'Distraction' (Invalid).
+         - Logic Flow: Step-by-step styled blocks with arrows -> Goal: Visualize the sequential nature of the methodology.
+         - Pattern Grid: Filterable Flex Grid -> Goal: Allow users to sort 14+ patterns by category (B2B, B2C, India).
+         - Scoring Radar: Chart.js Radar Chart -> Goal: Visualize the balance of an idea across 6 distinct dimensions (Urgency, WTP, etc.). Interaction: Real-time update from sliders.
+         - Justification: Radar charts are ideal for multi-factor assessments where 'balance' and 'total area' matter.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Slate 50 */
+            color: #334155; /* Slate 700 */
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none; 
+            width: 100%; 
+            background: transparent; 
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #4f46e5; /* Indigo 600 */
+            cursor: pointer;
+            margin-top: -8px; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #cbd5e1; /* Slate 300 */
+            border-radius: 2px;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .active-tab {
+            border-bottom: 2px solid #4f46e5;
+            color: #4f46e5;
+            font-weight: 600;
+        }
+
+        .step-arrow:after {
+            content: '';
+            position: absolute;
+            right: -24px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-width: 12px;
+            border-style: solid;
+            border-color: transparent transparent transparent #fff;
+            z-index: 10;
+        }
+        .step-arrow:before {
+            content: '';
+            position: absolute;
+            right: -28px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-width: 14px;
+            border-style: solid;
+            border-color: transparent transparent transparent #e2e8f0;
+            z-index: 5;
+        }
+        @media (max-width: 768px) {
+            .step-arrow:after, .step-arrow:before { display: none; }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center gap-2">
+                    <div class="h-8 w-8 bg-indigo-600 rounded flex items-center justify-center text-white font-bold">S</div>
+                    <span class="font-bold text-slate-900 tracking-tight">Signal Scout</span>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <button onclick="scrollToSection('signals')" class="text-slate-600 hover:text-indigo-600 text-sm font-medium transition">Signals</button>
+                    <button onclick="scrollToSection('process')" class="text-slate-600 hover:text-indigo-600 text-sm font-medium transition">Process</button>
+                    <button onclick="scrollToSection('patterns')" class="text-slate-600 hover:text-indigo-600 text-sm font-medium transition">Patterns</button>
+                    <button onclick="scrollToSection('calculator')" class="text-slate-600 hover:text-indigo-600 text-sm font-medium transition">Validator</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="bg-white border-b border-slate-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 text-center">
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight mb-4">
+                Evidence-Backed <span class="text-indigo-600">Startup Ideas</span>
+            </h1>
+            <p class="max-w-2xl mx-auto text-lg text-slate-600 mb-8">
+                Stop guessing. Start translating external noise into actionable execution plans.
+                Based on verifiable signals, proven patterns, and a strict quality filter.
+            </p>
+            <div class="flex justify-center gap-4">
+                <button onclick="scrollToSection('calculator')" class="px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
+                    Validate an Idea
+                </button>
+                <button onclick="scrollToSection('signals')" class="px-6 py-3 bg-white border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition">
+                    Learn the Method
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 1: Signal Lab -->
+    <section id="signals" class="py-16 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Step 1: The Input</h2>
+                <h3 class="mt-2 text-3xl font-bold text-slate-900">What Counts as a Signal?</h3>
+                <p class="mt-4 text-slate-600 max-w-3xl mx-auto">
+                    A signal is any external change that creates new pain, urgency, or opportunity. 
+                    If you can't link to a source (news, policy, API update), it's not a signal.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Valid Signals -->
+                <div class="bg-white rounded-xl shadow-sm border border-emerald-100 overflow-hidden">
+                    <div class="bg-emerald-50 px-6 py-4 border-b border-emerald-100 flex items-center justify-between">
+                        <h4 class="font-bold text-emerald-800">Valid Signals (Fuel)</h4>
+                        <span class="text-xs bg-emerald-200 text-emerald-800 px-2 py-1 rounded-full font-bold">USE THESE</span>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div class="flex gap-3">
+                            <div class="mt-1 font-bold text-emerald-500">✓</div>
+                            <div>
+                                <strong class="text-slate-900">Regulatory Changes</strong>
+                                <p class="text-sm text-slate-500">Gov policies, RBI circulars, Health Ministry guidelines, DPDP Act.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <div class="mt-1 font-bold text-emerald-500">✓</div>
+                            <div>
+                                <strong class="text-slate-900">Platform Shifts</strong>
+                                <p class="text-sm text-slate-500">Google Algo updates, WhatsApp API changes, Apple Privacy rules.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <div class="mt-1 font-bold text-emerald-500">✓</div>
+                            <div>
+                                <strong class="text-slate-900">Market Shifts</strong>
+                                <p class="text-sm text-slate-500">Layoffs (freelancer supply), funding dry-ups (cost-cutting focus).</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <div class="mt-1 font-bold text-emerald-500">✓</div>
+                            <div>
+                                <strong class="text-slate-900">Tech Inflections</strong>
+                                <p class="text-sm text-slate-500">New API capabilities, drastic cost drops (e.g., token costs).</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Invalid Signals -->
+                <div class="bg-white rounded-xl shadow-sm border border-rose-100 overflow-hidden">
+                    <div class="bg-rose-50 px-6 py-4 border-b border-rose-100 flex items-center justify-between">
+                        <h4 class="font-bold text-rose-800">Invalid Signals (Distraction)</h4>
+                        <span class="text-xs bg-rose-200 text-rose-800 px-2 py-1 rounded-full font-bold">AVOID</span>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div class="flex gap-3">
+                            <div class="mt-1 font-bold text-rose-500">✕</div>
+                            <div>
+                                <strong class="text-slate-900">Vague Trends</strong>
+                                <p class="text-sm text-slate-500">"AI is growing" or "People care about health" without a specific trigger.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <div class="mt-1 font-bold text-rose-500">✕</div>
+                            <div>
+                                <strong class="text-slate-900">Pure Speculation</strong>
+                                <p class="text-sm text-slate-500">Ideas based on technology that doesn't exist yet.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <div class="mt-1 font-bold text-rose-500">✕</div>
+                            <div>
+                                <strong class="text-slate-900">Lagging Indicators</strong>
+                                <p class="text-sm text-slate-500">Old news (e.g., "Remote work is rising" - 2020 news).</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <div class="mt-1 font-bold text-rose-500">✕</div>
+                            <div>
+                                <strong class="text-slate-900">No Evidence</strong>
+                                <p class="text-sm text-slate-500">"I feel like people need this" without validation.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 2: Translation Engine -->
+    <section id="process" class="py-16 bg-white border-t border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Step 2: The Logic</h2>
+                <h3 class="mt-2 text-3xl font-bold text-slate-900">Signal Translation Protocol</h3>
+                <p class="mt-4 text-slate-600">Every valid idea must pass through this sequential logic chain. Missing a step means the idea is incomplete.</p>
+            </div>
+
+            <div class="grid md:grid-cols-5 gap-4">
+                <!-- Step 1 -->
+                <div class="relative bg-slate-50 p-6 rounded-lg border border-slate-200 step-arrow flex flex-col items-center text-center hover:bg-indigo-50 hover:border-indigo-200 transition duration-300">
+                    <div class="bg-white w-10 h-10 rounded-full flex items-center justify-center text-indigo-600 font-bold border border-slate-200 mb-3 shadow-sm">1</div>
+                    <h4 class="font-bold text-slate-900">Signal</h4>
+                    <p class="text-xs text-slate-500 mt-2">External Change</p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="relative bg-slate-50 p-6 rounded-lg border border-slate-200 step-arrow flex flex-col items-center text-center hover:bg-indigo-50 hover:border-indigo-200 transition duration-300">
+                    <div class="bg-white w-10 h-10 rounded-full flex items-center justify-center text-indigo-600 font-bold border border-slate-200 mb-3 shadow-sm">2</div>
+                    <h4 class="font-bold text-slate-900">Victim</h4>
+                    <p class="text-xs text-slate-500 mt-2">Who is affected?</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="relative bg-slate-50 p-6 rounded-lg border border-slate-200 step-arrow flex flex-col items-center text-center hover:bg-indigo-50 hover:border-indigo-200 transition duration-300">
+                    <div class="bg-white w-10 h-10 rounded-full flex items-center justify-center text-indigo-600 font-bold border border-slate-200 mb-3 shadow-sm">3</div>
+                    <h4 class="font-bold text-slate-900">Problem</h4>
+                    <p class="text-xs text-slate-500 mt-2">New pain/urgency</p>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="relative bg-slate-50 p-6 rounded-lg border border-slate-200 step-arrow flex flex-col items-center text-center hover:bg-indigo-50 hover:border-indigo-200 transition duration-300">
+                    <div class="bg-white w-10 h-10 rounded-full flex items-center justify-center text-indigo-600 font-bold border border-slate-200 mb-3 shadow-sm">4</div>
+                    <h4 class="font-bold text-slate-900">Wedge</h4>
+                    <p class="text-xs text-slate-500 mt-2">Small, fast MVP</p>
+                </div>
+
+                <!-- Step 5 -->
+                <div class="relative bg-slate-50 p-6 rounded-lg border border-slate-200 flex flex-col items-center text-center hover:bg-emerald-50 hover:border-emerald-200 transition duration-300">
+                    <div class="bg-white w-10 h-10 rounded-full flex items-center justify-center text-emerald-600 font-bold border border-slate-200 mb-3 shadow-sm">5</div>
+                    <h4 class="font-bold text-slate-900">Payer</h4>
+                    <p class="text-xs text-slate-500 mt-2">Who pays now?</p>
+                </div>
+            </div>
+            
+            <div class="mt-8 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                <div class="flex items-start">
+                    <div class="ml-3">
+                        <h5 class="text-sm font-bold text-blue-800">Why this order matters</h5>
+                        <p class="text-sm text-blue-700 mt-1">Most founders start with Step 4 (The Idea) and try to work backward. This method forces you to start with Step 1 (The Market Reality), ensuring your solution has a reason to exist <em>now</em>.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 3: Pattern Vault -->
+    <section id="patterns" class="py-16 bg-slate-50 border-t border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-end mb-8">
+                <div class="mb-6 md:mb-0">
+                    <h2 class="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Step 3: Inspiration</h2>
+                    <h3 class="mt-2 text-3xl font-bold text-slate-900">Pattern Vault</h3>
+                    <p class="mt-2 text-slate-600">Don't reinvent the wheel. Apply these proven structures.</p>
+                </div>
+                
+                <!-- Filters -->
+                <div class="flex bg-white rounded-lg p-1 border border-slate-200 shadow-sm">
+                    <button class="px-4 py-2 text-sm font-medium rounded-md bg-slate-800 text-white shadow" onclick="filterPatterns('all', this)">All</button>
+                    <button class="px-4 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-50" onclick="filterPatterns('b2b', this)">B2B</button>
+                    <button class="px-4 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-50" onclick="filterPatterns('b2c', this)">B2C</button>
+                    <button class="px-4 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-50" onclick="filterPatterns('india', this)">India</button>
+                </div>
+            </div>
+
+            <div id="pattern-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Cards injected via JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 4: Validator & Calculator -->
+    <section id="calculator" class="py-16 bg-white border-t border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-sm font-semibold text-indigo-600 uppercase tracking-wide">Step 4: Validation</h2>
+                <h3 class="mt-2 text-3xl font-bold text-slate-900">Idea Viability Calculator</h3>
+                <p class="mt-4 text-slate-600">Rate your idea on the 6 rubric criteria. Aim for >20/30.</p>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-12 items-start">
+                
+                <!-- Input Controls -->
+                <div class="space-y-8 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                    
+                    <!-- Criteria 1 -->
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <label class="font-semibold text-slate-700">Urgency / Intensity of Pain</label>
+                            <span class="font-mono font-bold text-indigo-600" id="val-urgency">0</span>
+                        </div>
+                        <input type="range" min="0" max="5" value="0" id="in-urgency" oninput="updateChart()">
+                        <p class="text-xs text-slate-500 mt-1">Is this a "hair-on-fire" problem or a "nice-to-have"?</p>
+                    </div>
+
+                    <!-- Criteria 2 -->
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <label class="font-semibold text-slate-700">Willingness to Pay (WTP)</label>
+                            <span class="font-mono font-bold text-indigo-600" id="val-wtp">0</span>
+                        </div>
+                        <input type="range" min="0" max="5" value="0" id="in-wtp" oninput="updateChart()">
+                        <p class="text-xs text-slate-500 mt-1">Is the budget already allocated/available?</p>
+                    </div>
+
+                    <!-- Criteria 3 -->
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <label class="font-semibold text-slate-700">Distribution Advantage</label>
+                            <span class="font-mono font-bold text-indigo-600" id="val-dist">0</span>
+                        </div>
+                        <input type="range" min="0" max="5" value="0" id="in-dist" oninput="updateChart()">
+                        <p class="text-xs text-slate-500 mt-1">Do you have a unique channel to reach users cheaply?</p>
+                    </div>
+
+                    <!-- Criteria 4 -->
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <label class="font-semibold text-slate-700">Market Openness (Inverse Crowding)</label>
+                            <span class="font-mono font-bold text-indigo-600" id="val-comp">0</span>
+                        </div>
+                        <input type="range" min="0" max="5" value="0" id="in-comp" oninput="updateChart()">
+                        <p class="text-xs text-slate-500 mt-1">5 = Empty Blue Ocean, 0 = Extremely Crowded</p>
+                    </div>
+
+                    <!-- Criteria 5 -->
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <label class="font-semibold text-slate-700">Feasibility (2-6 Weeks)</label>
+                            <span class="font-mono font-bold text-indigo-600" id="val-feas">0</span>
+                        </div>
+                        <input type="range" min="0" max="5" value="0" id="in-feas" oninput="updateChart()">
+                        <p class="text-xs text-slate-500 mt-1">Can you ship a working MVP in under 6 weeks?</p>
+                    </div>
+
+                    <!-- Criteria 6 -->
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <label class="font-semibold text-slate-700">Regulatory Safety</label>
+                            <span class="font-mono font-bold text-indigo-600" id="val-reg">0</span>
+                        </div>
+                        <input type="range" min="0" max="5" value="0" id="in-reg" oninput="updateChart()">
+                        <p class="text-xs text-slate-500 mt-1">5 = No blockers, 0 = Needs government approval to launch.</p>
+                    </div>
+                </div>
+
+                <!-- Visualization -->
+                <div class="flex flex-col items-center justify-center">
+                    <div class="text-center mb-6">
+                        <h4 class="text-lg font-medium text-slate-500">Total Viability Score</h4>
+                        <div class="text-5xl font-extrabold text-slate-900 mt-2">
+                            <span id="total-score">0</span><span class="text-slate-300 text-3xl">/30</span>
+                        </div>
+                        <div id="verdict-badge" class="mt-3 px-4 py-1 bg-slate-100 text-slate-500 rounded-full text-sm font-bold inline-block">
+                            Rate your idea
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                    
+                    <div class="mt-6 text-sm text-slate-500 text-center max-w-sm">
+                        * Ideas scoring below 18/30 should generally be deprioritized or significantly rescoped.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 5: Simulation (Demo) -->
+    <section class="py-16 bg-slate-900 text-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl font-bold mb-4">See It In Action</h2>
+            <p class="text-slate-400 mb-8">
+                The "Startup Signal Scout" generates crisp, execution-ready briefs.
+                <br>Click below to simulate a live generation based on current market patterns.
+            </p>
+            <button onclick="simulateIdea()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-full shadow-lg transition transform hover:scale-105 mb-10">
+                Generate Example Brief
+            </button>
+
+            <div id="simulation-result" class="hidden text-left bg-slate-800 rounded-xl p-8 border border-slate-700 shadow-2xl">
+                <div class="flex justify-between items-start mb-6 border-b border-slate-700 pb-4">
+                    <div>
+                        <h3 class="text-2xl font-bold text-white" id="sim-title">Title</h3>
+                        <div class="flex gap-2 mt-2">
+                            <span class="bg-indigo-900 text-indigo-200 text-xs px-2 py-1 rounded" id="sim-cat">Category</span>
+                            <span class="bg-emerald-900 text-emerald-200 text-xs px-2 py-1 rounded">Score: 24/30</span>
+                        </div>
+                    </div>
+                    <div class="text-right hidden sm:block">
+                        <span class="text-slate-400 text-xs uppercase tracking-wider">Example Output</span>
+                    </div>
+                </div>
+                
+                <div class="grid gap-6">
+                    <div>
+                        <h4 class="text-indigo-400 text-xs font-bold uppercase mb-1">Trigger Signal</h4>
+                        <p class="text-slate-300 text-sm" id="sim-signal">Signal text...</p>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="text-indigo-400 text-xs font-bold uppercase mb-1">Problem & User</h4>
+                            <p class="text-slate-300 text-sm" id="sim-problem">Problem text...</p>
+                        </div>
+                        <div>
+                            <h4 class="text-indigo-400 text-xs font-bold uppercase mb-1">Solution & Wedge</h4>
+                            <p class="text-slate-300 text-sm" id="sim-solution">Solution text...</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="text-indigo-400 text-xs font-bold uppercase mb-1">MVP Scope (4 Weeks)</h4>
+                        <ul class="list-disc list-inside text-slate-300 text-sm marker:text-indigo-500" id="sim-mvp">
+                            <li>MVP Item 1</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-slate-500 text-sm">
+            <p>Based on the <strong>Startup Signal–Driven Idea Generation</strong> Knowledge Base.</p>
+            <p class="mt-2">Focus on signals. Validate via wedge. Execute fast.</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- Data: Pattern Library ---
+        const patterns = [
+            { title: "Compliance Automation", type: "b2b", desc: "Automating mandatory gov/industry reporting (e.g., ESG, Tax)." },
+            { title: "Workflow Digitization", type: "b2b", desc: "Moving paper/Excel legacy processes to vertical SaaS." },
+            { title: "Cost Reduction Tools", type: "b2b", desc: "Tools that immediately lower OPEX (Audit, Procurement)." },
+            { title: "Vertical SaaS", type: "b2b", desc: "OS for ignored niches (Waste Mgmt, Funeral Homes, etc)." },
+            { title: "Internal Ops Tooling", type: "b2b", desc: "DevOps, SecOps, or HR tech for remote teams." },
+            { title: "Trust & Safety Layers", type: "b2c", desc: "Verification for marketplaces, dating, or hiring." },
+            { title: "Convenience Aggregation", type: "b2c", desc: "Unbundling and rebundling services to save time." },
+            { title: "Subscription Utilities", type: "b2c", desc: "Recurring value for daily habits (Health, Learning)." },
+            { title: "Community + Commerce", type: "b2c", desc: "Niche groups with curated marketplaces." },
+            { title: "WhatsApp-first Workflows", type: "india", desc: "Interfaces that live entirely inside WhatsApp API." },
+            { title: "Language/Localization", type: "india", desc: "Translation layers for vernacular internet usage." },
+            { title: "Offline-to-Online Bridges", type: "india", desc: "Digitizing inventory for local kiranas/SMBs." },
+            { title: "Compliance-heavy SMB", type: "india", desc: "Helping small biz handle GST, invoices, labor laws." },
+            { title: "Micro-SaaS Models", type: "india", desc: "Price-sensitive tools (<₹500/mo) for mass adoption." }
+        ];
+
+        // --- Data: Simulation Example ---
+        const simulationExample = {
+            title: "SMB Consent-in-a-Box",
+            category: "India-Specific B2B",
+            signal: "DPDP Act Enforcement (India): strict consent management required for all data processors with heavy fines.",
+            problem: "Non-tech SMBs (clinics, brokers) collect data via WhatsApp but have zero infrastructure to log 'consent'. Enterprise tools are too expensive.",
+            solution: "A WhatsApp-first consent manager. Send template -> User replies 'Yes' -> Auto-logs in compliant dashboard.",
+            mvp: [
+                "Simple Admin Dashboard (React)",
+                "WhatsApp Business API Integration",
+                "Audit Log PDF Generator",
+                "Hindi/English Support"
+            ]
+        };
+
+        // --- Logic: Navigation ---
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // --- Logic: Patterns ---
+        function renderPatterns(filter) {
+            const grid = document.getElementById('pattern-grid');
+            grid.innerHTML = '';
+            
+            patterns.forEach(p => {
+                if (filter === 'all' || p.type === filter) {
+                    const el = document.createElement('div');
+                    // Style based on type
+                    let borderClass = 'border-l-4 ';
+                    if(p.type === 'b2b') borderClass += 'border-indigo-500';
+                    else if(p.type === 'b2c') borderClass += 'border-emerald-500';
+                    else borderClass += 'border-orange-500';
+
+                    let badgeColor = '';
+                    if(p.type === 'b2b') badgeColor = 'bg-indigo-100 text-indigo-800';
+                    else if(p.type === 'b2c') badgeColor = 'bg-emerald-100 text-emerald-800';
+                    else badgeColor = 'bg-orange-100 text-orange-800';
+
+                    el.className = `bg-white p-6 rounded-lg shadow-sm border border-slate-100 hover:shadow-md transition ${borderClass}`;
+                    el.innerHTML = `
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="font-bold text-slate-800 text-lg">${p.title}</h4>
+                            <span class="text-xs font-bold uppercase px-2 py-1 rounded ${badgeColor}">${p.type}</span>
+                        </div>
+                        <p class="text-slate-600 text-sm leading-relaxed">${p.desc}</p>
+                    `;
+                    grid.appendChild(el);
+                }
+            });
+        }
+
+        function filterPatterns(type, btn) {
+            // Reset buttons
+            const buttons = btn.parentElement.querySelectorAll('button');
+            buttons.forEach(b => {
+                b.className = "px-4 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-50";
+            });
+            // Set active
+            btn.className = "px-4 py-2 text-sm font-medium rounded-md bg-slate-800 text-white shadow";
+            
+            renderPatterns(type);
+        }
+
+        // --- Logic: Calculator & Chart ---
+        let radarChart;
+
+        function initChart() {
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            radarChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: [
+                        'Urgency', 
+                        'WTP', 
+                        'Distribution', 
+                        'Open Market', // Inverse crowding
+                        'Feasibility', 
+                        'Safety'       // Inverse regulation
+                    ],
+                    datasets: [{
+                        label: 'Idea Score',
+                        data: [0, 0, 0, 0, 0, 0],
+                        fill: true,
+                        backgroundColor: 'rgba(79, 70, 229, 0.2)', // Indigo 600, 0.2
+                        borderColor: 'rgb(79, 70, 229)',
+                        pointBackgroundColor: 'rgb(79, 70, 229)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(79, 70, 229)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    elements: {
+                        line: { borderWidth: 3 }
+                    },
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(0,0,0,0.1)' },
+                            grid: { color: 'rgba(0,0,0,0.1)' },
+                            pointLabels: {
+                                font: { size: 12, weight: '600' },
+                                color: '#475569'
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 5,
+                            ticks: { stepSize: 1, display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.raw + '/5';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart() {
+            const urgency = parseInt(document.getElementById('in-urgency').value);
+            const wtp = parseInt(document.getElementById('in-wtp').value);
+            const dist = parseInt(document.getElementById('in-dist').value);
+            const comp = parseInt(document.getElementById('in-comp').value);
+            const feas = parseInt(document.getElementById('in-feas').value);
+            const reg = parseInt(document.getElementById('in-reg').value);
+
+            // Update UI Numbers
+            document.getElementById('val-urgency').innerText = urgency;
+            document.getElementById('val-wtp').innerText = wtp;
+            document.getElementById('val-dist').innerText = dist;
+            document.getElementById('val-comp').innerText = comp;
+            document.getElementById('val-feas').innerText = feas;
+            document.getElementById('val-reg').innerText = reg;
+
+            // Update Total
+            const total = urgency + wtp + dist + comp + feas + reg;
+            document.getElementById('total-score').innerText = total;
+
+            // Update Verdict
+            const verdictEl = document.getElementById('verdict-badge');
+            if(total === 0) {
+                verdictEl.innerText = "Rate your idea";
+                verdictEl.className = "mt-3 px-4 py-1 bg-slate-100 text-slate-500 rounded-full text-sm font-bold inline-block";
+            } else if (total < 18) {
+                verdictEl.innerText = "Deprioritize (Weak Signal)";
+                verdictEl.className = "mt-3 px-4 py-1 bg-rose-100 text-rose-800 rounded-full text-sm font-bold inline-block";
+            } else if (total < 24) {
+                verdictEl.innerText = "Promising (Refine Wedge)";
+                verdictEl.className = "mt-3 px-4 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-bold inline-block";
+            } else {
+                verdictEl.innerText = "GO FOR IT (Strong Signal)";
+                verdictEl.className = "mt-3 px-4 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-bold inline-block";
+            }
+
+            // Update Chart Data
+            radarChart.data.datasets[0].data = [urgency, wtp, dist, comp, feas, reg];
+            radarChart.update();
+        }
+
+        // --- Logic: Simulation ---
+        function simulateIdea() {
+            const container = document.getElementById('simulation-result');
+            container.classList.remove('hidden');
+            
+            // Populate
+            document.getElementById('sim-title').innerText = simulationExample.title;
+            document.getElementById('sim-cat').innerText = simulationExample.category;
+            document.getElementById('sim-signal').innerText = simulationExample.signal;
+            document.getElementById('sim-problem').innerText = simulationExample.problem;
+            document.getElementById('sim-solution').innerText = simulationExample.solution;
+            
+            const ul = document.getElementById('sim-mvp');
+            ul.innerHTML = '';
+            simulationExample.mvp.forEach(item => {
+                const li = document.createElement('li');
+                li.innerText = item;
+                ul.appendChild(li);
+            });
+
+            // Scroll to it
+            container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // --- Init ---
+        window.addEventListener('DOMContentLoaded', () => {
+            renderPatterns('all');
+            initChart();
+        });
+
+    </script>
+</body>
+</html>
